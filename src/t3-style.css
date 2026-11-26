@@ -1529,8 +1529,8 @@ html[data-t3-op-dark="0"] .t3op-vial-col-left {
 .t3op-outline-fab {
   position: fixed;
   right: 16px;
-  bottom: 62px;
-  top: auto;
+  top: 50%;
+  transform: translateY(-50%);
   z-index: 45;
   display: inline-flex;
   align-items: center;
@@ -1555,8 +1555,7 @@ html[data-t3-op-dark="0"] .t3op-vial-col-left {
 .t3op-outline-popover {
   position: fixed;
   right: 16px;
-  bottom: 98px;
-  top: auto;
+  top: calc(50% + 22px);
   z-index: 9997;
   width: 288px;
   max-height: 360px;
