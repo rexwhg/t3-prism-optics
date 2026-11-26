@@ -373,7 +373,7 @@
           </div>
         </div>
         <div class="t3op-settings-credit">
-          <span><strong>T3 Prism Optics</strong> v1.0.0 · GPL-3.0-only · Independent T3 Code port</span>
+          <span><strong>T3 Prism Optics</strong> v1.1.0 · GPL-3.0-only · Independent T3 Code port</span>
           <span>Optical engines &amp; credits: <a href="https://github.com/RMvdesi/obsidian-prism" target="_blank" rel="noreferrer">Obsidian Prism by RMvdesi</a> &amp; upstream MIT contributors</span>
         </div>
       `;

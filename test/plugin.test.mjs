@@ -142,11 +142,48 @@ test('portable installer installs, preserves user config on upgrade, reports sta
 
     const status = installer.getStatus(targetDir);
     assert.equal(status.installed, true);
-    assert.equal(status.meta.version, '1.0.0');
+    assert.equal(status.meta.version, '1.1.0');
 
     const un = installer.uninstallPlugin(targetDir);
     assert.equal(un.existed, true);
     assert.equal(fs.existsSync(targetDir), false);
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('macOS autostart builder generates valid LaunchAgent plist and native .app launcher bundle', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 't3-op-autostart-test-'));
+  const targetDir = path.join(tmpDir, 'plugin');
+  const plistPath = path.join(tmpDir, 'com.rexwhg.t3-prism-optics.watch.plist');
+  const appPath = path.join(tmpDir, 'T3 Code Prism.app');
+  try {
+    const res = installer.installAutostart({
+      targetDir,
+      launchAgentPath: plistPath,
+      launcherAppPath: appPath,
+      pinDock: false,
+      registerSystem: false,
+    });
+    assert.equal(fs.existsSync(plistPath), true);
+    const plistText = fs.readFileSync(plistPath, 'utf8');
+    assert.match(plistText, /com\.rexwhg\.t3-prism-optics\.watch/);
+    assert.match(plistText, /<key>RunAtLoad<\/key>/);
+    assert.match(plistText, /--watch/);
+    assert.equal(fs.existsSync(path.join(appPath, 'Contents', 'Info.plist')), true);
+    assert.equal(fs.existsSync(res.launcher.launcherBinPath), true);
+    const launcherSrc = fs.readFileSync(res.launcher.launcherBinPath, 'utf8');
+    assert.match(launcherSrc, /--remote-debugging-port=0/);
+
+    const clean = installer.uninstallAutostart({
+      launchAgentPath: plistPath,
+      launcherAppPath: appPath,
+      registerSystem: false,
+    });
+    assert.equal(clean.removedAgent, true);
+    assert.equal(clean.removedApp, true);
+    assert.equal(fs.existsSync(plistPath), false);
+    assert.equal(fs.existsSync(appPath), false);
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }

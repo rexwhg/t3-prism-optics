@@ -121,19 +121,28 @@ npm test
 npm run demo
 ```
 
-### 2. 安装为独立便携插件
+### 2. macOS 永久一键自动注入（推荐：每次从底部 Dock 点击即享注入版）
+
+无需修改官方 `/Applications/T3 Code (Beta).app`、不破坏签名与官方更新，一条命令即可让每次点击底部 Dock 图标都自动以注入版启动：
+
+```bash
+# 安装便携插件 + 后台 LaunchAgent 守护 + 生成 ~/Applications/T3 Code Prism.app + 固定到底部 Dock
+npm run install:dock
+```
+
+该命令会自动完成三件事（随时可用 `npm run uninstall:autostart` 无痕撤回）：
+1. **后台 `LaunchAgent` 守护**（`~/Library/LaunchAgents/com.rexwhg.t3-prism-optics.watch.plist`）：开机自动静默驻留 `inject.js --watch`，无终端窗口，检测到 T3 Code 启动或页面刷新后 1–2 秒内自动热注入，并每 60 秒静默刷新本地遥测与配额。
+2. **原生图标启动器**（`~/Applications/T3 Code Prism.app`）：自动复制 T3 Code 官方高清图标，点击后自动以 `--remote-debugging-port=0` 启动 T3 Code 并退至后台（`LSUIElement=true`，不会在 Dock 出现两个图标）。
+3. **固定到底部 Dock**：自动把 `T3 Code Prism` 固定到 macOS 底部程序坞，以后每次点它即可直接使用完整光学注入版。
+
+### 3. 手动安装与热注入（macOS / Linux / Windows）
 
 ```bash
 # 一键安装至 ~/.t3/plugins/t3-prism-optics（覆盖升级自动保留个人 config.json）
 npm run install:plugin
-```
 
-### 3. 开启本机 CDP 启动 T3 Code 并挂载热注入
-
-```bash
 # macOS：完全退出 T3 Code（Cmd+Q）后，携带 --remote-debugging-port=0 启动：
 open -a "T3 Code (Beta)" --args --remote-debugging-port=0
-# （也可直接双击 ~/.t3/plugins/t3-prism-optics/launch-t3-with-prism.command）
 
 # 单次热注入至所有已打开的 T3 Code 窗口：
 npm run inject
@@ -148,7 +157,10 @@ npm run watch
 # 停止守护进程并从实时窗口彻底清除所有注入样式、Canvas 与 DOM
 npm run remove
 
-# 删除便携插件目录 ~/.t3/plugins/t3-prism-optics
+# 移除 macOS 后台 LaunchAgent、启动器 App 与 Dock 固定图标
+npm run uninstall:autostart
+
+# 彻底卸载自启动项与便携插件目录 ~/.t3/plugins/t3-prism-optics
 npm run uninstall:plugin
 ```
 

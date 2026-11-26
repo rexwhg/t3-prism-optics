@@ -1,6 +1,6 @@
 {
   "name": "t3-prism-optics",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "T3 Prism Optics — Portable optical UI, WebGL2 ASCII ripple horizon, 1px GPU prism rim, cosmic reasoning effort slider, 512K 3D glass vial, Codex/T3 6-month usage heatmap & Code/Chat workspace plugin for T3 Code Desktop via zero-source-modification CDP hot-injection.",
   "license": "GPL-3.0-only",
   "author": "rexwhg (https://github.com/rexwhg)",
@@ -42,6 +42,9 @@
     "watch": "node lib/inject.js --watch",
     "remove": "node lib/remove.js",
     "install:plugin": "node lib/install.cjs",
+    "install:autostart": "node lib/install.cjs --autostart",
+    "install:dock": "node lib/install.cjs --autostart --pin-dock",
+    "uninstall:autostart": "node lib/install.cjs --uninstall-autostart",
     "uninstall:plugin": "node lib/install.cjs --uninstall",
     "status": "node lib/install.cjs --status",
     "launch:t3": "node lib/install.cjs --launch-t3",

@@ -122,21 +122,28 @@ npm test
 npm run demo
 ```
 
-### 2. Install as a Standalone Portable Plugin
+### 2. Permanent 1-Click Launch on macOS (Recommended — Zero Manual Commands)
+
+Want **every click from your macOS Dock / Spotlight** to open T3 Code with T3 Prism Optics already injected — without modifying `/Applications/T3 Code (Beta).app` or breaking official updates?
+
+```bash
+# Installs portable plugin + background LaunchAgent watcher + ~/Applications/T3 Code Prism.app + pins to Dock
+npm run install:dock
+```
+
+What this sets up cleanly (100% reversible with `npm run uninstall:autostart`):
+1. **Background `LaunchAgent`** (`~/Library/LaunchAgents/com.rexwhg.t3-prism-optics.watch.plist`): silently keeps `inject.js --watch` alive across logins and T3 Code restarts, re-injecting automatically in ~1–2 seconds and refreshing local telemetry every 60s.
+2. **Native Launcher App** (`~/Applications/T3 Code Prism.app`, with T3 Code's official icon): launches T3 Code with `--remote-debugging-port=0` and focuses it cleanly without creating a duplicate Dock dot (`LSUIElement=true`).
+3. **macOS Dock Pin**: pins `T3 Code Prism` directly in your Dock so opening it always gives you the injected optical experience.
+
+### 3. Manual Install & Hot-Injection (macOS / Linux / Windows)
 
 ```bash
 # Installs cleanly into ~/.t3/plugins/t3-prism-optics (preserves config.json on upgrades)
 npm run install:plugin
-```
 
-### 3. Launch T3 Code with Local CDP & Attach Hot-Injection
-
-T3 Code Desktop enables local loopback CDP (`127.0.0.1`, ephemeral port written to `DevToolsActivePort`) when started with `--remote-debugging-port=0`:
-
-```bash
-# macOS: quit T3 Code completely (Cmd+Q), then launch with local CDP:
+# Launch T3 Code with local loopback CDP enabled (--remote-debugging-port=0):
 open -a "T3 Code (Beta)" --args --remote-debugging-port=0
-# (or double-click ~/.t3/plugins/t3-prism-optics/launch-t3-with-prism.command)
 
 # One-shot hot-inject into all open T3 Code windows:
 npm run inject
@@ -151,7 +158,10 @@ npm run watch
 # Strip all injected styles, canvases, and DOM nodes from live T3 Code windows + stop watcher
 npm run remove
 
-# Remove the portable plugin folder from ~/.t3/plugins/t3-prism-optics
+# Remove LaunchAgent, ~/Applications/T3 Code Prism.app, and Dock pin (macOS)
+npm run uninstall:autostart
+
+# Remove autostart + portable plugin folder (~/.t3/plugins/t3-prism-optics)
 npm run uninstall:plugin
 ```
 
@@ -166,7 +176,10 @@ npm run uninstall:plugin
 | `npm run remove` | Stops watcher daemon and cleanly strips all injected DOM/CSS/WebGL resources |
 | `npm run build:bundle` | Compiles deterministic privacy-clean single-file `dist/t3-prism-optics.bundle.js` |
 | `npm run install:plugin` | Installs/upgrades portable bundle + macOS launcher in `~/.t3/plugins/t3-prism-optics` |
-| `npm run uninstall:plugin` | Stops watcher and deletes `~/.t3/plugins/t3-prism-optics` |
+| `npm run install:autostart` | Installs portable plugin + macOS `LaunchAgent` background watcher + `~/Applications/T3 Code Prism.app` |
+| `npm run install:dock` | Same as `install:autostart` and pins `T3 Code Prism.app` directly to the macOS Dock |
+| `npm run uninstall:autostart` | Unloads/deletes `LaunchAgent`, removes `~/Applications/T3 Code Prism.app`, and unpins from Dock |
+| `npm run uninstall:plugin` | Removes autostart (if present), stops watcher, and deletes `~/.t3/plugins/t3-prism-optics` |
 | `npm run status` | Prints JSON status of installation, bundle hash, and discovered T3 Code CDP port |
 | `npm run launch:t3` | Prints launch instructions (pass `-- --spawn` to spawn T3 Code with `--remote-debugging-port=0`) |
 | `npm run demo` | Starts local demo harness (`http://127.0.0.1:4179`) exercising exact T3 Code DOM selectors |
