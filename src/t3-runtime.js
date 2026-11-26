@@ -4,7 +4,7 @@
   if (!G) return;
 
   const STYLE_ID = 't3-obsidian-prism-css';
-  const VERSION = '1.1.2';
+  const VERSION = '1.1.3';
 
   function mountT3ObsidianPrism({ cssText = '', config = {}, telemetry: initialTelemetry = null, hash = '' } = {}) {
     // Idempotent hot-reload: tear down previous instance cleanly first
@@ -23,6 +23,7 @@
     const opticsMod = G.__t3OpOpticsHost;
     const modelMod = G.__t3OpModelControls;
     const telemetryMod = G.__t3OpTelemetryStudio;
+    const commandI18nMod = G.__t3OpCommandI18n;
     const workbenchMod = G.__t3OpWorkbench;
 
     if (!cfgMod) throw new Error('t3-obsidian-prism: __t3OpConfig not loaded');
@@ -76,6 +77,7 @@
     let telemetry = null;
     let workbench = null;
     let modelControls = null;
+    const commandI18n = commandI18nMod ? commandI18nMod.createCommandI18n({ configStore }) : null;
 
     const onForceThemeToggle = () => {
       const html = document.documentElement;
@@ -127,6 +129,7 @@
       modelControls.refresh();
       telemetry.refresh();
       workbench.refresh();
+      if (commandI18n) commandI18n.refresh();
     }
 
     function scheduleRefresh() {
@@ -166,6 +169,7 @@
 
     streamInk.start();
     opticsHost.start();
+    if (commandI18n) commandI18n.start();
     refreshAll();
 
     domObserver.observe(document.documentElement, {
@@ -221,6 +225,7 @@
         modelControls.destroy();
         telemetry.destroy();
         workbench.destroy();
+        if (commandI18n) commandI18n.destroy();
         configStore.clearRootAttrs();
         document.querySelectorAll('[data-t3op-owned="1"]').forEach((n) => n.remove());
         document.getElementById(STYLE_ID)?.remove();

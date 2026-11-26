@@ -434,10 +434,11 @@
             ${toggleRow('codeFold', '代码块与长回复折叠', cfg.codeFold)}
             ${toggleRow('outlineRail', '右侧对话提问大纲浮窗', cfg.outlineRail)}
             ${toggleRow('sidebarChatMode', '侧栏 代码 | 对话 工作区切换', cfg.sidebarChatMode)}
+            ${toggleRow('commandI18n', '斜杠命令 / 技能说明中文化（保留英文原词）', cfg.commandI18n)}
           </div>
         </div>
         <div class="t3op-settings-credit">
-          <span><strong>T3 Prism Optics</strong> v1.1.2 · GPL-3.0-only · Independent T3 Code port</span>
+          <span><strong>T3 Prism Optics</strong> v1.1.3 · GPL-3.0-only · Independent T3 Code port</span>
           <span>Optical engines &amp; credits: <a href="https://github.com/RMvdesi/obsidian-prism" target="_blank" rel="noreferrer">Obsidian Prism by RMvdesi</a> &amp; upstream MIT contributors</span>
         </div>
       `;

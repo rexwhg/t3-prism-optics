@@ -1316,6 +1316,34 @@
       return false;
     }
 
+    let draftHeroResizeObs = null;
+    let observedDraftHeroEl = null;
+
+    function syncDraftHeroClearance(wrap, composerStack) {
+      if (!wrap || !composerStack) return;
+      const heroEl = composerStack.querySelector(':scope > .bottom-full');
+      if (!heroEl) {
+        wrap.style.removeProperty('--t3op-draft-hero-h');
+        return;
+      }
+      const updateVar = () => {
+        if (!wrap.isConnected || !heroEl.isConnected) return;
+        const h = Math.ceil(heroEl.getBoundingClientRect().height);
+        if (h > 0) wrap.style.setProperty('--t3op-draft-hero-h', `${h}px`);
+      };
+      updateVar();
+      if (typeof ResizeObserver === 'function' && heroEl !== observedDraftHeroEl) {
+        if (draftHeroResizeObs) {
+          try {
+            draftHeroResizeObs.disconnect();
+          } catch {}
+        }
+        draftHeroResizeObs = new ResizeObserver(updateVar);
+        draftHeroResizeObs.observe(heroEl);
+        observedDraftHeroEl = heroEl;
+      }
+    }
+
     function syncStudioHome() {
       const cfg = configStore.get();
       ensureStudioQuickButton();
@@ -1340,11 +1368,19 @@
           studioWrapEl.remove();
           studioWrapEl = null;
         }
+        if (draftHeroResizeObs) {
+          try {
+            draftHeroResizeObs.disconnect();
+          } catch {}
+          draftHeroResizeObs = null;
+          observedDraftHeroEl = null;
+        }
         return;
       }
 
       if (studioWrapEl && studioWrapEl.isConnected && studioWrapEl.parentElement === slotHost) {
         renderStudioCard(studioWrapEl);
+        if (isT3DraftHome) syncDraftHeroClearance(studioWrapEl, composerStack);
         return;
       }
 
@@ -1357,6 +1393,7 @@
       if (isT3DraftHome && composerStack && composerStack.parentElement === slotHost) {
         wrap.setAttribute('data-t3op-in-overlay', '1');
         slotHost.insertBefore(wrap, composerStack);
+        syncDraftHeroClearance(wrap, composerStack);
       } else {
         const composerForm = slotHost.querySelector('[data-chat-composer-form="true"], [data-chat-composer-overlay="true"]');
         if (composerForm && composerForm.parentElement === slotHost) {
@@ -1386,6 +1423,13 @@
 
     function destroy() {
       destroyed = true;
+      if (draftHeroResizeObs) {
+        try {
+          draftHeroResizeObs.disconnect();
+        } catch {}
+        draftHeroResizeObs = null;
+        observedDraftHeroEl = null;
+      }
       closeVialPopover();
       closeStudioModal();
       if (hudEl) {

@@ -18,5 +18,6 @@
   "codeFold": true,
   "outlineRail": true,
   "sidebarChatMode": true,
+  "commandI18n": true,
   "pollIntervalMs": 2500
 }

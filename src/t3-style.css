@@ -796,10 +796,29 @@ html[data-t3-op-active="1"] [data-chat-composer-overlay="true"]:has(.t3op-studio
 }
 html[data-t3-op-active="1"] [data-chat-composer-overlay="true"] .t3op-studio-wrap[data-t3op-in-overlay="1"] {
   pointer-events: auto !important;
-  margin: 0 auto 128px !important;
+  margin: 0 auto calc(var(--t3op-draft-hero-h, 118px) + clamp(64px, 7vh, 96px)) !important;
+}
+html[data-t3-op-active="1"][data-t3-op-mascot="off"] [data-chat-composer-overlay="true"] .t3op-studio-wrap[data-t3op-in-overlay="1"] {
+  margin: 0 auto calc(var(--t3op-draft-hero-h, 92px) + clamp(64px, 7vh, 96px)) !important;
 }
 html[data-t3-op-active="1"]:not([data-t3-op-mascot="off"]) [data-chat-composer-stack="true"] > .bottom-full > div {
   padding-bottom: 42px !important;
+}
+
+/* Slash command & skill Chinese description overlay (non-destructive for React) */
+html[data-t3-op-active="1"] [data-t3op-cmd-orig-hidden="1"] {
+  display: none !important;
+}
+html[data-t3-op-active="1"] .t3op-cmd-zh-desc {
+  min-width: 0;
+  flex: 1 1 0%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--t3op-fg-muted, currentColor);
 }
 .t3op-studio-greeting {
   display: inline-flex;

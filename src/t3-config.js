@@ -26,6 +26,7 @@
     codeFold: true,
     outlineRail: true,
     sidebarChatMode: true,
+    commandI18n: true,
     pollIntervalMs: 2500,
   });
 
@@ -52,6 +53,7 @@
     'codeFold',
     'outlineRail',
     'sidebarChatMode',
+    'commandI18n',
   ]);
 
   function validateEntry(key, value) {

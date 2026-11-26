@@ -12,6 +12,7 @@ const telemetry = require('../lib/telemetry.js');
 const configMod = require('../src/t3-config.js');
 const modelControls = require('../src/t3-model-controls.js');
 const studioMod = require('../src/t3-telemetry-studio.js');
+const commandI18n = require('../src/t3-command-i18n.js');
 
 test('config normalization & validation reject unknown/invalid entries', () => {
   const cfg = configMod.normalizeConfig({
@@ -67,9 +68,62 @@ test('single-file CDP bundle compiles cleanly, is deterministic, and parses as v
   assert.match(b1.code, /createPrismRimCanvasController/);
   assert.match(b1.code, /t3opCesSweep/);
   assert.match(b1.code, /t3-stream-f0/);
+  assert.match(b1.code, /__t3OpCommandI18n/);
+  assert.match(b1.code, /--t3op-draft-hero-h/);
   assert.match(b1.code, /RMvdesi\/obsidian-prism/);
   // Parse syntax without executing
   assert.doesNotThrow(() => new Function(b1.code));
+});
+
+test('slash command & skill Chinese localization preserves original tokens and skips Chinese or non-command items', () => {
+  // Antigravity & Codex slash commands
+  assert.match(
+    commandI18n.translateCommandDescription({
+      itemId: 'provider-slash-command:antigravity:goal',
+      label: '/goal',
+      description: 'Run until the specified goal is completely finished.',
+    }),
+    /持续执行任务/
+  );
+  assert.match(
+    commandI18n.translateCommandDescription({
+      itemId: 'provider-slash-command:antigravity:boost',
+      label: '/boost',
+      description: 'Invoke the Boost multi-agent orchestrator for complex tasks.',
+    }),
+    /Boost/
+  );
+  assert.match(
+    commandI18n.translateCommandDescription({
+      itemId: 'provider-slash-command:antigravity:agy-customizations',
+      label: '/agy-customizations',
+      description: 'Comprehensive guide and reference for the Antigravity Customization System.',
+    }),
+    /Antigravity 自定义系统/
+  );
+  // Skills (slash & $)
+  assert.match(
+    commandI18n.translateCommandDescription({
+      itemId: 'skill:codex:openai-templates:artifact-template-system-design',
+      label: 'openai-templates:artifact-template-system-design',
+      description: 'Create documents with the System Design template',
+    }),
+    /System Design.*模板创建文档/
+  );
+  // Already Chinese descriptions stay untouched
+  assert.equal(
+    commandI18n.translateCommandDescription({
+      itemId: 'slash:model',
+      label: '/model',
+      description: '切换这个会话使用的回复模型',
+    }),
+    null
+  );
+  // Only slash / provider-slash-command / skill itemIds are translated
+  assert.equal(commandI18n.isTranslatableItemId('provider-slash-command:antigravity:plan'), true);
+  assert.equal(commandI18n.isTranslatableItemId('skill:codex:create-skill'), true);
+  assert.equal(commandI18n.isTranslatableItemId('path:file:src/index.ts'), false);
+  assert.equal(commandI18n.isTranslatableItemId('model:antigravity:gemini-4-neon'), false);
 });
 
 test('effort level translation & 5-scale Studio telemetry aggregation work across 7d/30d/90d/180d/all', () => {
@@ -152,7 +206,7 @@ test('portable installer installs, preserves user config on upgrade, reports sta
 
     const status = installer.getStatus(targetDir);
     assert.equal(status.installed, true);
-    assert.equal(status.meta.version, '1.1.2');
+    assert.equal(status.meta.version, '1.1.3');
 
     const un = installer.uninstallPlugin(targetDir);
     assert.equal(un.existed, true);
