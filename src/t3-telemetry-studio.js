@@ -1067,7 +1067,19 @@
       ensureStudioQuickButton();
       const convArea = document.querySelector('[data-workspace-area="conversation"]');
       const hasMessages = hasVisibleMessages(convArea);
-      const slotHost = document.querySelector('[data-t3op-studio-anchor]') || convArea;
+      const demoAnchor = document.querySelector('[data-t3op-studio-anchor]');
+      const composerOverlay = document.querySelector('[data-chat-composer-overlay="true"]');
+      const composerLane = composerOverlay?.querySelector('.chat-composer-lane') || null;
+      const composerStack = composerLane?.querySelector('[data-chat-composer-stack="true"]') || null;
+      const isT3DraftHome = Boolean(
+        composerOverlay &&
+          composerLane &&
+          composerStack &&
+          (composerOverlay.className.includes('items-center') || composerStack.querySelector(':scope > .bottom-full'))
+      );
+
+      // Priority: 1) standalone demo anchor, 2) real T3 Code centered empty-thread overlay lane, 3) fallback convArea
+      const slotHost = demoAnchor || (isT3DraftHome ? composerLane : composerOverlay ? null : convArea);
 
       if (!cfg.studioHome || !slotHost || hasMessages) {
         if (studioWrapEl) {
@@ -1077,17 +1089,27 @@
         return;
       }
 
-      if (studioWrapEl && studioWrapEl.isConnected) {
+      if (studioWrapEl && studioWrapEl.isConnected && studioWrapEl.parentElement === slotHost) {
         renderStudioCard(studioWrapEl);
         return;
       }
 
+      if (studioWrapEl) {
+        studioWrapEl.remove();
+        studioWrapEl = null;
+      }
+
       const wrap = buildStudioShell(false);
-      const composerForm = slotHost.querySelector('[data-chat-composer-form="true"], [data-chat-composer-overlay="true"]');
-      if (composerForm && composerForm.parentElement === slotHost) {
-        slotHost.insertBefore(wrap, composerForm);
+      if (isT3DraftHome && composerStack && composerStack.parentElement === slotHost) {
+        wrap.setAttribute('data-t3op-in-overlay', '1');
+        slotHost.insertBefore(wrap, composerStack);
       } else {
-        slotHost.appendChild(wrap);
+        const composerForm = slotHost.querySelector('[data-chat-composer-form="true"], [data-chat-composer-overlay="true"]');
+        if (composerForm && composerForm.parentElement === slotHost) {
+          slotHost.insertBefore(wrap, composerForm);
+        } else {
+          slotHost.appendChild(wrap);
+        }
       }
       studioWrapEl = wrap;
       if (opticsHost) opticsHost.tagPrismBoxes();

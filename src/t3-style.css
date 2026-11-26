@@ -780,6 +780,27 @@ html[data-t3-op-dark="0"] .t3op-ces-tick {
   position: relative;
   z-index: 2;
 }
+/* Real T3 Code empty-thread centered overlay integration (zero overlap with hero, mascots & composer) */
+html[data-t3-op-active="1"] [data-chat-composer-overlay="true"]:has(.t3op-studio-wrap) {
+  pointer-events: auto !important;
+  overflow-y: auto !important;
+  align-items: flex-start !important;
+  padding: 28px 0 36px !important;
+}
+html[data-t3-op-active="1"] [data-chat-composer-overlay="true"]:has(.t3op-studio-wrap) > .chat-composer-lane {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  width: 100% !important;
+  margin: auto 0 !important;
+}
+html[data-t3-op-active="1"] [data-chat-composer-overlay="true"] .t3op-studio-wrap[data-t3op-in-overlay="1"] {
+  pointer-events: auto !important;
+  margin: 0 auto 128px !important;
+}
+html[data-t3-op-active="1"]:not([data-t3-op-mascot="off"]) [data-chat-composer-stack="true"] > .bottom-full > div {
+  padding-bottom: 42px !important;
+}
 .t3op-studio-greeting {
   display: inline-flex;
   align-items: center;
@@ -1508,7 +1529,8 @@ html[data-t3-op-dark="0"] .t3op-vial-col-left {
 .t3op-outline-fab {
   position: fixed;
   right: 16px;
-  top: 74px;
+  bottom: 62px;
+  top: auto;
   z-index: 45;
   display: inline-flex;
   align-items: center;
@@ -1533,7 +1555,8 @@ html[data-t3-op-dark="0"] .t3op-vial-col-left {
 .t3op-outline-popover {
   position: fixed;
   right: 16px;
-  top: 108px;
+  bottom: 98px;
+  top: auto;
   z-index: 9997;
   width: 288px;
   max-height: 360px;

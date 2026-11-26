@@ -142,7 +142,7 @@ test('portable installer installs, preserves user config on upgrade, reports sta
 
     const status = installer.getStatus(targetDir);
     assert.equal(status.installed, true);
-    assert.equal(status.meta.version, '1.1.0');
+    assert.equal(status.meta.version, '1.1.1');
 
     const un = installer.uninstallPlugin(targetDir);
     assert.equal(un.existed, true);

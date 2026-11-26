@@ -4,7 +4,7 @@
   if (!G) return;
 
   const STYLE_ID = 't3-obsidian-prism-css';
-  const VERSION = '1.1.0';
+  const VERSION = '1.1.1';
 
   function mountT3ObsidianPrism({ cssText = '', config = {}, telemetry: initialTelemetry = null, hash = '' } = {}) {
     // Idempotent hot-reload: tear down previous instance cleanly first

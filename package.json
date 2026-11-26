@@ -1,6 +1,6 @@
 {
   "name": "t3-prism-optics",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "T3 Prism Optics — Portable optical UI, WebGL2 ASCII ripple horizon, 1px GPU prism rim, cosmic reasoning effort slider, 512K 3D glass vial, Codex/T3 6-month usage heatmap & Code/Chat workspace plugin for T3 Code Desktop via zero-source-modification CDP hot-injection.",
   "license": "GPL-3.0-only",
   "author": "rexwhg (https://github.com/rexwhg)",
