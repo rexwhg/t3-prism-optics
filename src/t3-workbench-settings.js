@@ -115,7 +115,11 @@
         listEl.innerHTML = '';
         let shown = 0;
         turns.forEach((el, idx) => {
-          const txt = (el.textContent || '').replace(/\s+/g, ' ').trim();
+          const rawTxt = (el.textContent || '').replace(/\s+/g, ' ').trim();
+          const txt = rawTxt
+            .replace(/^你\s*/, '')
+            .replace(/\s*\d{1,2}:\d{2}\s*(?:AM|PM)?\s*$/i, '')
+            .trim() || rawTxt;
           if (query && !txt.toLowerCase().includes(query)) return;
           shown += 1;
           const item = document.createElement('button');
@@ -140,7 +144,66 @@
       renderItems('');
       document.body.appendChild(pop);
       outlinePopover = pop;
+      positionOutlineRail();
       inputEl.focus();
+    }
+
+    let asideResizeObs = null;
+    let observedAsideEl = null;
+
+    function positionOutlineRail() {
+      if (!outlineFab || !outlineFab.isConnected) return;
+      let anchorBottom = 64; // fallback cleanly below chat header
+      let rightOffset = 16;
+
+      const asideEl = document.querySelector('[data-chat-canvas="true"] > aside');
+      const detailsCard = document.querySelector('[data-thread-details-card]');
+      for (const el of [asideEl, detailsCard]) {
+        if (!el || el.offsetParent === null) continue;
+        const r = el.getBoundingClientRect();
+        if (r.width > 40 && r.height > 20 && r.right > window.innerWidth * 0.55) {
+          if (r.bottom > anchorBottom) {
+            anchorBottom = r.bottom;
+            rightOffset = Math.max(12, Math.round(window.innerWidth - r.right));
+          }
+        }
+      }
+
+      // Also avoid any open top-right "Find in thread" search bar
+      const findInput = Array.from(document.querySelectorAll('input')).find(
+        (i) => i.offsetParent !== null && /查找|find/i.test(`${i.placeholder || ''} ${i.getAttribute('aria-label') || ''}`)
+      );
+      if (findInput) {
+        const fr = (findInput.closest('div') || findInput).getBoundingClientRect();
+        if (fr.right > window.innerWidth * 0.55 && fr.top < 160 && fr.bottom > anchorBottom) {
+          anchorBottom = fr.bottom;
+        }
+      }
+
+      // Observe aside size changes (e.g. expanding git repos or opening find bar)
+      if (typeof ResizeObserver === 'function' && asideEl && asideEl !== observedAsideEl) {
+        if (asideResizeObs) asideResizeObs.disconnect();
+        asideResizeObs = new ResizeObserver(() => {
+          if (!destroyed) positionOutlineRail();
+        });
+        asideResizeObs.observe(asideEl);
+        observedAsideEl = asideEl;
+      }
+
+      const fabTop = Math.max(72, Math.min(window.innerHeight - 132, Math.round(anchorBottom + 10)));
+      outlineFab.style.top = `${fabTop}px`;
+      outlineFab.style.right = `${rightOffset}px`;
+      outlineFab.style.bottom = 'auto';
+      outlineFab.style.transform = 'none';
+
+      if (outlinePopover && outlinePopover.isConnected) {
+        const popTop = Math.min(window.innerHeight - 180, fabTop + 36);
+        const maxH = Math.max(140, Math.min(360, window.innerHeight - popTop - 72));
+        outlinePopover.style.top = `${popTop}px`;
+        outlinePopover.style.right = `${rightOffset}px`;
+        outlinePopover.style.bottom = 'auto';
+        outlinePopover.style.maxHeight = `${maxH}px`;
+      }
     }
 
     function syncOutlineRail() {
@@ -164,6 +227,7 @@
         document.body.appendChild(outlineFab);
       }
       outlineFab.textContent = `大纲 · ${turns.length}`;
+      positionOutlineRail();
     }
 
     // ── 3. Real Functional Sidebar Code | Chat Workspace Mode Switch ──────────
@@ -373,7 +437,7 @@
           </div>
         </div>
         <div class="t3op-settings-credit">
-          <span><strong>T3 Prism Optics</strong> v1.1.1 · GPL-3.0-only · Independent T3 Code port</span>
+          <span><strong>T3 Prism Optics</strong> v1.1.2 · GPL-3.0-only · Independent T3 Code port</span>
           <span>Optical engines &amp; credits: <a href="https://github.com/RMvdesi/obsidian-prism" target="_blank" rel="noreferrer">Obsidian Prism by RMvdesi</a> &amp; upstream MIT contributors</span>
         </div>
       `;
@@ -492,6 +556,13 @@
 
     function destroy() {
       destroyed = true;
+      if (asideResizeObs) {
+        try {
+          asideResizeObs.disconnect();
+        } catch {}
+        asideResizeObs = null;
+        observedAsideEl = null;
+      }
       closeOutlinePopover();
       closeQuickDrawer();
       if (outlineFab) {

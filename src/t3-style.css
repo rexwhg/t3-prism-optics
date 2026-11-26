@@ -1529,8 +1529,7 @@ html[data-t3-op-dark="0"] .t3op-vial-col-left {
 .t3op-outline-fab {
   position: fixed;
   right: 16px;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 112px;
   z-index: 45;
   display: inline-flex;
   align-items: center;
@@ -1546,7 +1545,7 @@ html[data-t3-op-dark="0"] .t3op-vial-col-left {
   cursor: pointer;
   box-shadow: var(--t3op-bubble-shadow);
   backdrop-filter: blur(12px);
-  transition: color 120ms ease, border-color 120ms ease, transform 120ms ease;
+  transition: top 160ms cubic-bezier(0.22, 1, 0.36, 1), color 120ms ease, border-color 120ms ease;
 }
 .t3op-outline-fab:hover {
   color: var(--t3op-fg);
@@ -1555,7 +1554,7 @@ html[data-t3-op-dark="0"] .t3op-vial-col-left {
 .t3op-outline-popover {
   position: fixed;
   right: 16px;
-  top: calc(50% + 22px);
+  top: 148px;
   z-index: 9997;
   width: 288px;
   max-height: 360px;

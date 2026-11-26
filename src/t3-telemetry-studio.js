@@ -369,6 +369,210 @@
     return false;
   }
 
+  function formatResetIso(resetsAtIso) {
+    if (!resetsAtIso) return '';
+    const ms = typeof resetsAtIso === 'number' ? resetsAtIso : Date.parse(String(resetsAtIso));
+    if (!Number.isFinite(ms)) return '';
+    const diffSec = Math.max(0, Math.round((ms - Date.now()) / 1000));
+    if (diffSec < 60) return '即将重置';
+    const days = Math.floor(diffSec / 86400);
+    const hours = Math.floor((diffSec % 86400) / 3600);
+    const mins = Math.floor((diffSec % 3600) / 60);
+    if (days > 0) return `${days}天${hours}小时`;
+    if (hours > 0) return `${hours}小时${mins}分`;
+    return `${mins}分钟`;
+  }
+
+  function localizeWindowLabel(w) {
+    const mins = Number(w?.windowDurationMins || 0);
+    const id = String(w?.id || '').toLowerCase();
+    const kind = String(w?.kind || '').toLowerCase();
+    if (kind === 'weekly' || id.includes('weekly') || mins >= 9000) return '周配额';
+    if (mins >= 1300) return `${Math.round(mins / 1440)}天窗口`;
+    if (mins >= 60) return `${Math.round(mins / 60)} 小时窗口`;
+    if (id.includes('5h') || /5-?hour/i.test(String(w?.label || ''))) return '5 小时窗口';
+    return String(w?.label || '配额窗口');
+  }
+
+  function makeQuotaCard(id, name, camp, rawWindows, source) {
+    const windows = (rawWindows || [])
+      .filter((w) => w && typeof w.usedPercent === 'number')
+      .map((w) => ({
+        label: localizeWindowLabel(w),
+        remainingPct: Math.max(0, Math.min(100, Math.round(100 - w.usedPercent))),
+        usedPct: Math.round(w.usedPercent),
+        resetText: formatResetIso(w.resetsAt),
+        resetsAt: w.resetsAt || null,
+      }));
+    if (windows.length === 0) return null;
+    const minRem = Math.min(...windows.map((w) => w.remainingPct));
+    return {
+      id,
+      name,
+      camp,
+      source,
+      level: minRem <= 15 ? 'low' : minRem <= 35 ? 'warn' : 'ok',
+      badge: minRem <= 15 ? '额度偏低' : minRem <= 35 ? '余量偏紧' : '充裕',
+      windows,
+    };
+  }
+
+  let liveQuotaCache = { at: 0, pools: null };
+
+  // Read-only lookup of live provider usageLimits already held in T3 Code's React memory (Antigravity Gemini, Claude & GPT, Codex)
+  function readLiveT3ProviderQuotas(force = false) {
+    const now = Date.now();
+    if (!force && liveQuotaCache.pools && now - liveQuotaCache.at < 2000) {
+      return liveQuotaCache.pools;
+    }
+    if (typeof document === 'undefined') return [];
+    const rootEl = document.getElementById('root') || document.body?.firstElementChild;
+    if (!rootEl) return [];
+    const fk = Object.keys(rootEl).find((k) => k.startsWith('__reactContainer') || k.startsWith('__reactFiber'));
+    if (!fk) return [];
+
+    const visited = new Set();
+    const stack = [rootEl[fk]];
+    let providers = null;
+    let steps = 0;
+
+    const inspectVal = (val, depth = 0) => {
+      if (!val || depth > 3 || typeof val !== 'object' || providers) return;
+      if (
+        Array.isArray(val) &&
+        val.length > 0 &&
+        val.length < 30 &&
+        val[0] &&
+        typeof val[0] === 'object' &&
+        ('usageLimits' in val[0] || ('driver' in val[0] && 'enabled' in val[0]))
+      ) {
+        providers = val;
+        return;
+      }
+      if (!Array.isArray(val)) {
+        if (Array.isArray(val.providers)) inspectVal(val.providers, depth + 1);
+        if (!providers && Array.isArray(val.serverProviders)) inspectVal(val.serverProviders, depth + 1);
+      }
+    };
+
+    while (stack.length > 0 && steps < 3500 && !providers) {
+      steps += 1;
+      const node = stack.pop();
+      if (!node || visited.has(node)) continue;
+      visited.add(node);
+      try {
+        inspectVal(node.memoizedProps);
+      } catch {}
+      let st = node.memoizedState;
+      let sc = 0;
+      while (st && sc < 15 && !providers) {
+        sc += 1;
+        try {
+          inspectVal(st.memoizedState);
+        } catch {}
+        st = st.next;
+      }
+      if (node.child) stack.push(node.child);
+      if (node.sibling) stack.push(node.sibling);
+    }
+
+    const pools = [];
+    if (Array.isArray(providers)) {
+      for (const p of providers) {
+        if (!p || p.enabled === false || !p.usageLimits || !Array.isArray(p.usageLimits.windows) || p.usageLimits.windows.length === 0) {
+          continue;
+        }
+        const drv = String(p.driver || p.provider || '').toLowerCase();
+        const wins = p.usageLimits.windows;
+        if (drv === 'antigravity') {
+          const gemWins = wins.filter((w) => /gemini/i.test(`${w.id || ''} ${w.label || ''}`));
+          const thirdWins = wins.filter((w) => /3p|claude|gpt/i.test(`${w.id || ''} ${w.label || ''}`));
+          const gemCard = makeQuotaCard('antigravity-gemini', 'Gemini (Antigravity)', 'gemini', gemWins, 't3-live');
+          if (gemCard) pools.push(gemCard);
+          const thirdCard = makeQuotaCard('antigravity-3p', 'Claude / GPT (Antigravity)', 'claude', thirdWins, 't3-live');
+          if (thirdCard) pools.push(thirdCard);
+        } else if (drv === 'codex') {
+          const codexCard = makeQuotaCard('t3-codex', p.displayName || 'Codex / GPT', 'codex', wins, 't3-live');
+          if (codexCard) pools.push(codexCard);
+        } else if (drv.includes('claude')) {
+          const claudeCard = makeQuotaCard('t3-claude', p.displayName || 'Claude', 'claude', wins, 't3-live');
+          if (claudeCard) pools.push(claudeCard);
+        }
+      }
+    }
+
+    liveQuotaCache = { at: now, pools };
+    return pools;
+  }
+
+  function mergeAllQuotaPools(rawData, forceLive = false) {
+    const livePools = readLiveT3ProviderQuotas(forceLive);
+    const localPools = Array.isArray(rawData?.quotas) ? rawData.quotas : [];
+    const merged = [];
+
+    // 1. Add all live T3 provider pools (Gemini, Antigravity 3P Claude/GPT, Codex, Claude)
+    const liveCodex = livePools.find((q) => q.camp === 'codex');
+    const localCodex = localPools.find((q) => /codex|gpt/i.test(`${q.id || ''} ${q.name || ''}`));
+
+    for (const q of livePools) {
+      if (q === liveCodex && localCodex) {
+        // Merge local 5h session window with T3 live weekly window so Codex shows both cleanly
+        const combined = [...q.windows];
+        for (const lw of localCodex.windows || []) {
+          const exists = combined.some((cw) => cw.label === lw.label);
+          if (!exists) combined.unshift(lw);
+        }
+        const minRem = Math.min(...combined.map((w) => w.remainingPct));
+        merged.push({
+          ...q,
+          name: localCodex.name || q.name,
+          windows: combined,
+          level: minRem <= 15 ? 'low' : minRem <= 35 ? 'warn' : 'ok',
+          badge: minRem <= 15 ? '额度偏低' : minRem <= 35 ? '余量偏紧' : '充裕',
+        });
+      } else {
+        merged.push(q);
+      }
+    }
+
+    // 2. Append any local pools not already represented
+    for (const lq of localPools) {
+      const lqCamp = /gemini/i.test(`${lq.id || ''} ${lq.name || ''}`)
+        ? 'gemini'
+        : /claude/i.test(`${lq.id || ''} ${lq.name || ''}`)
+        ? 'claude'
+        : 'codex';
+      if (lq === localCodex && liveCodex) continue;
+      if (!merged.some((m) => m.id === lq.id)) {
+        merged.push({ ...lq, camp: lq.camp || lqCamp });
+      }
+    }
+
+    return merged.length > 0 ? merged : buildFallbackTelemetry().quotas.map((q) => ({
+      ...q,
+      camp: /gemini/i.test(`${q.id} ${q.name}`) ? 'gemini' : /claude/i.test(`${q.id} ${q.name}`) ? 'claude' : 'codex',
+    }));
+  }
+
+  function selectQuotasForCamp(allQuotas, camp) {
+    if (!Array.isArray(allQuotas) || allQuotas.length === 0) return [];
+    const target = camp || 'gemini';
+    const matched = allQuotas.filter((q) => {
+      if (q.camp) return q.camp === target;
+      const text = `${q.id || ''} ${q.name || ''}`.toLowerCase();
+      if (target === 'gemini') return /gemini|antigravity/.test(text) && !/3p|claude|gpt/.test(text);
+      if (target === 'claude') return /claude|3p/.test(text);
+      return /codex|gpt/.test(text);
+    });
+    if (matched.length > 0) return matched;
+    // Fallback: if Claude selected and only shared Antigravity 3P exists
+    if (target === 'claude') {
+      const shared = allQuotas.filter((q) => /3p|claude/i.test(`${q.id || ''} ${q.name || ''}`));
+      if (shared.length > 0) return shared;
+    }
+    return allQuotas.slice(0, 1);
+  }
+
   function readLiveTelemetryFromDom() {
     const rawData = getTelemetryData();
     const ctx = rawData.latestContext;
@@ -387,6 +591,8 @@
       const raw = (picker.getAttribute('aria-label') || picker.textContent || '').replace(/\s+/g, ' ').trim();
       if (raw) {
         modelLabel = raw.split(',')[0].trim();
+        // Strip prepended periodic keycap badge text like "10Ne " if injected into button textContent
+        modelLabel = modelLabel.replace(/^\d{1,3}[A-Z][a-z]?\s+/, '').trim() || modelLabel;
         modelId = modelLabel.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 't3-model';
         if (/claude|opus|sonnet|haiku/i.test(raw)) camp = 'claude';
         else if (/gpt|codex|o3|o4|sol|astra|luna|terra/i.test(raw)) camp = 'codex';
@@ -414,6 +620,8 @@
     const convTokens = Math.round(usedTokens * 0.572);
     const toolTokens = Math.max(0, usedTokens - sysTokens - convTokens);
     const agg30 = aggregateForView(rawData, '30d', 'all');
+    const allQuotas = mergeAllQuotaPools(rawData);
+    const activeQuotas = selectQuotasForCamp(allQuotas, camp);
 
     return {
       usedTokens,
@@ -432,7 +640,8 @@
         { idx: 1, label: '对话轮次 Conversation', tokens: convTokens, color: '#3b82f6' },
         { idx: 2, label: '工具与子代理 Tools', tokens: toolTokens, color: '#818cf8' },
       ],
-      quotas: rawData.quotas && rawData.quotas.length > 0 ? rawData.quotas : buildFallbackTelemetry().quotas,
+      quotas: allQuotas,
+      activeQuotas,
     };
   }
 
@@ -498,6 +707,63 @@
       }
     }
 
+    function renderVialQuotaRowsHtml(activeQuotas) {
+      const pool = (activeQuotas || [])[0];
+      if (!pool || !Array.isArray(pool.windows) || pool.windows.length === 0) {
+        return '<div class="t3op-quota-row" style="font-size:11.5px;opacity:0.7"><span>当前模型暂无本地配额窗口，可点击下方「T3 用量」查看</span></div>';
+      }
+      return pool.windows
+        .slice(0, 2)
+        .map(
+          (w) => `
+        <div class="t3op-quota-metric" style="gap:4px">
+          <div class="t3op-quota-row" style="font-size:11.5px">
+            <span class="t3op-quota-label">${escapeHtml(pool.name)} · ${escapeHtml(w.label)}</span>
+            <span class="t3op-quota-val">${w.remainingPct}% ${w.resetText ? `<span style="opacity:0.6;font-weight:400">· ${escapeHtml(w.resetText)}</span>` : ''}</span>
+          </div>
+          <div class="t3op-quota-track"><div class="t3op-quota-fill" style="width:${w.remainingPct}%"></div></div>
+        </div>`
+        )
+        .join('');
+    }
+
+    function updateOpenVialPopover() {
+      if (!popoverEl || !popoverEl.isConnected) return;
+      const data = readLiveTelemetryFromDom();
+      const rt = getRuntimeState ? getRuntimeState() : {};
+      const liveStreaming = Boolean(rt.streaming);
+
+      const metaLeft = popoverEl.querySelector('.t3op-vial-top-meta span');
+      const metaPct = popoverEl.querySelector('.t3op-vial-top-meta strong');
+      if (metaLeft) metaLeft.textContent = `${Math.round(data.maxTokens / 1000)}K`;
+      if (metaPct) metaPct.textContent = `${data.pct.toFixed(1)}%`;
+
+      const statusFoot = popoverEl.querySelector('.t3op-vial-status-foot');
+      if (statusFoot) {
+        statusFoot.setAttribute('data-live', liveStreaming ? '1' : '0');
+        statusFoot.textContent = liveStreaming ? 'LIVE' : 'IDLE';
+      }
+
+      const modelLine = popoverEl.querySelector('.t3op-vial-model-line');
+      const nextModelLine = `${data.modelLabel} → ${data.modelId}`;
+      if (modelLine && modelLine.textContent !== nextModelLine) {
+        modelLine.textContent = nextModelLine;
+        if (vialCtrl) {
+          vialCtrl.agitate(0.95);
+          vialCtrl.wake();
+        }
+      }
+
+      const quotaBox = popoverEl.querySelector('[data-t3op-vial-quotas]');
+      if (quotaBox) {
+        const html = renderVialQuotaRowsHtml(data.activeQuotas);
+        if (quotaBox.dataset.sig !== html) {
+          quotaBox.innerHTML = html;
+          quotaBox.dataset.sig = html;
+        }
+      }
+    }
+
     function openVialPopover(anchorEl) {
       if (destroyed) return;
       if (popoverEl && popoverEl.isConnected) {
@@ -507,6 +773,7 @@
       const data = readLiveTelemetryFromDom();
       const rt = getRuntimeState ? getRuntimeState() : {};
       const liveStreaming = Boolean(rt.streaming);
+      const quotaHtml = renderVialQuotaRowsHtml(data.activeQuotas);
 
       const pop = document.createElement('div');
       pop.className = 't3op-vial-popover';
@@ -528,7 +795,7 @@
               <span>真实模型采样验真</span>
               <span class="t3op-verified-pill">VERIFIED</span>
             </div>
-            <div class="t3op-vial-model-line">${data.modelLabel} → ${data.modelId}</div>
+            <div class="t3op-vial-model-line">${escapeHtml(data.modelLabel)} → ${escapeHtml(data.modelId)}</div>
             <div class="t3op-vial-perf-row">
               <span>TTFT ${data.ttft}</span>
               <span>缓存命中 ${data.cacheHit.toFixed(1)}%</span>
@@ -554,22 +821,7 @@
               <span>实时模型配额池</span>
               <button type="button" class="t3op-link-inline" data-t3op-open-studio-modal="1">半年概览 ›</button>
             </div>
-            <div style="display:flex;flex-direction:column;gap:8px">
-              ${data.quotas
-                .slice(0, 2)
-                .map((q) => {
-                  const w = q.windows[0] || { label: '窗口', remainingPct: 100, resetText: '' };
-                  return `
-                <div class="t3op-quota-metric" style="gap:4px">
-                  <div class="t3op-quota-row" style="font-size:11.5px">
-                    <span class="t3op-quota-label">${q.name} · ${w.label}</span>
-                    <span class="t3op-quota-val">${w.remainingPct}% ${w.resetText ? `<span style="opacity:0.6;font-weight:400">· ${w.resetText}</span>` : ''}</span>
-                  </div>
-                  <div class="t3op-quota-track"><div class="t3op-quota-fill" style="width:${w.remainingPct}%"></div></div>
-                </div>`;
-                })
-                .join('')}
-            </div>
+            <div data-t3op-vial-quotas style="display:flex;flex-direction:column;gap:8px">${quotaHtml}</div>
           </div>
           <div class="t3op-vial-footer-bar">
             <span>本地轨迹缓存 ${cacheCleared ? '0 MB' : `${data.cacheMb} MB`}</span>
@@ -580,6 +832,8 @@
           </div>
         </div>
       `;
+      const qb = pop.querySelector('[data-t3op-vial-quotas]');
+      if (qb) qb.dataset.sig = quotaHtml;
 
       document.body.appendChild(pop);
       popoverEl = pop;
@@ -891,7 +1145,7 @@
           });
         });
       } else {
-        const quotas = rawData.quotas && rawData.quotas.length > 0 ? rawData.quotas : buildFallbackTelemetry().quotas;
+        const quotas = mergeAllQuotaPools(rawData);
         body.innerHTML = `
           <div class="t3op-studio-section-head">
             <span class="t3op-studio-section-title">模型配额池剩余 (Model Quotas)</span>
@@ -1126,6 +1380,7 @@
     function refresh() {
       if (destroyed) return;
       syncComposerVialHud();
+      updateOpenVialPopover();
       syncStudioHome();
     }
 
@@ -1173,6 +1428,7 @@
     STUDIO_RANGES,
     formatCompact,
     aggregateForView,
+    selectQuotasForCamp,
     readLiveTelemetryFromDom,
     createTelemetryStudio,
   };

@@ -92,6 +92,16 @@ test('effort level translation & 5-scale Studio telemetry aggregation work acros
   assert.equal(agg180.topModel, 'gpt-6.2-sol');
   assert.equal(studioMod.STUDIO_RANGES.map((r) => r.id).join(','), '7d,30d,90d,180d,all');
   assert.equal(typeof telemetry.collectLocalTelemetry, 'function');
+
+  // Verify model-camp quota filtering selects matching provider pool
+  const samplePools = [
+    { id: 'antigravity-gemini', name: 'Gemini (Antigravity)', camp: 'gemini', windows: [{ label: '5 小时窗口', remainingPct: 77 }] },
+    { id: 'antigravity-3p', name: 'Claude / GPT (Antigravity)', camp: 'claude', windows: [{ label: '5 小时窗口', remainingPct: 100 }] },
+    { id: 't3-codex', name: 'Codex / GPT', camp: 'codex', windows: [{ label: '周配额', remainingPct: 60 }] },
+  ];
+  assert.equal(studioMod.selectQuotasForCamp(samplePools, 'gemini')[0].id, 'antigravity-gemini');
+  assert.equal(studioMod.selectQuotasForCamp(samplePools, 'codex')[0].id, 't3-codex');
+  assert.equal(studioMod.selectQuotasForCamp(samplePools, 'claude')[0].id, 'antigravity-3p');
 });
 
 test('CDP inject, refresh, and remove expressions parse cleanly', () => {
@@ -142,7 +152,7 @@ test('portable installer installs, preserves user config on upgrade, reports sta
 
     const status = installer.getStatus(targetDir);
     assert.equal(status.installed, true);
-    assert.equal(status.meta.version, '1.1.1');
+    assert.equal(status.meta.version, '1.1.2');
 
     const un = installer.uninstallPlugin(targetDir);
     assert.equal(un.existed, true);
