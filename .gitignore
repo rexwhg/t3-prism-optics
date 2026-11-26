@@ -1,0 +1,7 @@
+node_modules/
+dist/
+config.json
+watch.log
+.watch.pid
+.DS_Store
+*.log

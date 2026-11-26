@@ -1,0 +1,9 @@
+{
+  "name": "t3-prism-optics",
+  "displayName": "T3 Prism Optics",
+  "description": "Portable optical UI, WebGL2 ASCII ripple horizon, 1px GPU prism rim, cosmic reasoning effort slider, WebGL2 cut-crystal bar, 512K 3D glass vial, Codex/T3 6-month Studio analytics dashboard, pixel companions, and Code/Chat workspace suite for T3 Code Desktop.",
+  "version": "1.0.0",
+  "license": "GPL-3.0-only",
+  "repository": "https://github.com/rexwhg/t3-prism-optics",
+  "upstream": "https://github.com/RMvdesi/obsidian-prism"
+}

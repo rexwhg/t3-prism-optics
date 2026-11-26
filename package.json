@@ -1,0 +1,52 @@
+{
+  "name": "t3-prism-optics",
+  "version": "1.0.0",
+  "description": "T3 Prism Optics — Portable optical UI, WebGL2 ASCII ripple horizon, 1px GPU prism rim, cosmic reasoning effort slider, 512K 3D glass vial, Codex/T3 6-month usage heatmap & Code/Chat workspace plugin for T3 Code Desktop via zero-source-modification CDP hot-injection.",
+  "license": "GPL-3.0-only",
+  "author": "rexwhg (https://github.com/rexwhg)",
+  "homepage": "https://github.com/rexwhg/t3-prism-optics#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rexwhg/t3-prism-optics.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rexwhg/t3-prism-optics/issues"
+  },
+  "keywords": [
+    "t3code",
+    "t3-code",
+    "t3-code-theme",
+    "t3-code-plugin",
+    "t3-prism-optics",
+    "obsidian-prism",
+    "electron",
+    "cdp",
+    "chrome-devtools-protocol",
+    "hot-injection",
+    "webgl2",
+    "optical-ui",
+    "codex",
+    "claude",
+    "gemini",
+    "reasoning-effort-slider",
+    "usage-heatmap",
+    "context-window",
+    "ai-coding",
+    "developer-tools"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "inject": "node lib/inject.js",
+    "watch": "node lib/inject.js --watch",
+    "remove": "node lib/remove.js",
+    "install:plugin": "node lib/install.cjs",
+    "uninstall:plugin": "node lib/install.cjs --uninstall",
+    "status": "node lib/install.cjs --status",
+    "launch:t3": "node lib/install.cjs --launch-t3",
+    "build:bundle": "node lib/cdp.js --build-bundle",
+    "demo": "node demo/serve.mjs",
+    "test": "node --test test/*.test.mjs"
+  }
+}

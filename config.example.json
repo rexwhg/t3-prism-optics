@@ -1,0 +1,22 @@
+{
+  "palette": "obsidian",
+  "lightPreset": "crystal",
+  "accentTone": "follow",
+  "cornerStyle": "balanced",
+  "motionLevel": "ultra",
+  "ambientIntensity": "100",
+  "homeRipple": true,
+  "convRipple": "subtle",
+  "prismRim": true,
+  "streamInk": true,
+  "effortSlider": true,
+  "periodicBadges": true,
+  "vialHud": true,
+  "studioHome": true,
+  "mascot": "minis",
+  "smoothCaret": true,
+  "codeFold": true,
+  "outlineRail": true,
+  "sidebarChatMode": true,
+  "pollIntervalMs": 2500
+}
